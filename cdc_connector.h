@@ -67,7 +67,8 @@ public:
     /**
      * Read one change event
      *
-     * @return A Row of data
+     * @return A Row of data or an empty Row on error. The empty row evaluates
+     * to false. If the read timed out, string returned by getError is empty.
      *
      * @see InternalRow
      */

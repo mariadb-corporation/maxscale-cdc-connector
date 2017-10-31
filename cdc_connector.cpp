@@ -142,6 +142,7 @@ Connection::~Connection()
 
 bool Connection::createConnection()
 {
+    m_error.clear();
     bool rval = false;
     struct sockaddr_in remote = {};
 
@@ -191,6 +192,8 @@ bool Connection::createConnection()
 
 void Connection::closeConnection()
 {
+    m_error.clear();
+
     if (m_fd != -1)
     {
         nointr_write(CLOSE_MSG, sizeof(CLOSE_MSG) - 1);
@@ -201,6 +204,7 @@ void Connection::closeConnection()
 
 bool Connection::requestData(const std::string& table, const std::string& gtid)
 {
+    m_error.clear();
     bool rval = true;
 
     std::string req_msg(REQUEST_MSG);
@@ -297,6 +301,7 @@ Row Connection::processRow(json_t* js)
 
 Row Connection::read()
 {
+    m_error.clear();
     Row rval;
     std::string row;
 
