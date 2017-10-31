@@ -438,7 +438,7 @@ bool Connection::readRow(std::string& dest)
         else if (rc == 0)
         {
             rval = false;
-            m_error = "Request timed out";
+            m_error = CDC::TIMEOUT;
             break;
         }
 

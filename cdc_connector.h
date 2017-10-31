@@ -22,6 +22,10 @@
 namespace CDC
 {
 
+// The error strings returned by the getError library. These can be used to
+// check for the most common errors (which right now is only the timeout).
+static const std::string TIMEOUT = "Request timed out";
+
 // The typedef for the Row type
 class InternalRow;
 typedef std::tr1::shared_ptr<InternalRow> Row;
