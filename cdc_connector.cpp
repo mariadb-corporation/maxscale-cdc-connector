@@ -514,7 +514,12 @@ int Connection::wait_for_event(short events)
     struct pollfd pfd;
     pfd.fd = m_fd;
     pfd.events = events;
-    int rc = poll(&pfd, nfds, m_timeout * 1000);
+    int rc;
+
+    while ((rc = poll(&pfd, nfds, m_timeout * 1000)) < 0 && errno == EINTR)
+    {
+        ;
+    }
 
     if (rc > 0 && is_poll_error(pfd.revents))
     {
