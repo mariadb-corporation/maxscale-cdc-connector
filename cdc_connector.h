@@ -63,7 +63,7 @@ public:
      *
      * @return True if the connection was successfully created
      */
-    bool createConnection();
+    bool connect();
 
     /**
      * Request a data stream for a table
@@ -71,7 +71,7 @@ public:
      * @param table The table to stream
      * @param gtid The optional starting GTID position in `domain-server_id-sequence` format
      */
-    bool requestData(const std::string& table, const std::string& gtid = "");
+    bool request(const std::string& table, const std::string& gtid = "");
 
     /**
      * Read one change event
@@ -88,14 +88,14 @@ public:
      *
      * The connection is closed in the destructor if it is still open when it is called
      */
-    void closeConnection();
+    void close();
 
     /**
      * Get the JSON schema in string form
      *
      * @return A reference to the string form of theJSON schema
      */
-    const std::string& getSchema() const
+    const std::string& schema() const
     {
         return m_schema;
     }
@@ -105,7 +105,7 @@ public:
      *
      * @return The latest error or an empty string if no errors have occurred
      */
-    const std::string& getError() const
+    const std::string& error() const
     {
         return m_error;
     }
@@ -115,7 +115,7 @@ public:
      *
      * @return A map of field names mapped to the SQL type
      */
-    ValueMap getFields() const
+    ValueMap fields() const
     {
         ValueMap fields;
 
@@ -139,11 +139,11 @@ private:
     ValueList m_types;
     int m_timeout;
 
-    bool doAuth();
-    bool doRegistration();
-    bool readRow(std::string& dest);
-    void processSchema(json_t* json);
-    Row processRow(json_t*);
+    bool do_auth();
+    bool do_registration();
+    bool read_row(std::string& dest);
+    void process_schema(json_t* json);
+    Row process_row(json_t*);
 
     // Lower-level functions
     int wait_for_event(short events);
@@ -161,7 +161,7 @@ public:
      *
      * @return Number of fields in row
      */
-    size_t fieldCount() const
+    size_t length() const
     {
         return m_values.size();
     }

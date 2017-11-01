@@ -142,10 +142,10 @@ Connection::Connection(const std::string& address,
 
 Connection::~Connection()
 {
-    closeConnection();
+    close();
 }
 
-bool Connection::createConnection()
+bool Connection::connect()
 {
     m_error.clear();
     bool rval = false;
@@ -173,7 +173,7 @@ bool Connection::createConnection()
         m_fd = fd;
         int fl;
 
-        if (connect(fd, (struct sockaddr*) &remote, sizeof(remote)) == -1)
+        if (::connect(fd, (struct sockaddr*) &remote, sizeof(remote)) == -1)
         {
             char err[ERRBUF_SIZE];
             m_error = "Failed to connect: ";
@@ -186,28 +186,28 @@ bool Connection::createConnection()
             m_error = "Failed to set socket non-blocking: ";
             m_error += strerror_r(errno, err, sizeof(err));
         }
-        else if (doAuth())
+        else if (do_auth())
         {
-            rval = doRegistration();
+            rval = do_registration();
         }
     }
 
     return rval;
 }
 
-void Connection::closeConnection()
+void Connection::close()
 {
     m_error.clear();
 
     if (m_fd != -1)
     {
         nointr_write(CLOSE_MSG, sizeof(CLOSE_MSG) - 1);
-        close(m_fd);
+        ::close(m_fd);
         m_fd = -1;
     }
 }
 
-bool Connection::requestData(const std::string& table, const std::string& gtid)
+bool Connection::request(const std::string& table, const std::string& gtid)
 {
     m_error.clear();
     bool rval = true;
@@ -245,7 +245,7 @@ static inline bool is_schema(json_t* json)
     return rval;
 }
 
-void Connection::processSchema(json_t* json)
+void Connection::process_schema(json_t* json)
 {
     m_keys.clear();
     m_types.clear();
@@ -272,7 +272,7 @@ void Connection::processSchema(json_t* json)
     }
 }
 
-Row Connection::processRow(json_t* js)
+Row Connection::process_row(json_t* js)
 {
     ValueList values;
     m_error.clear();
@@ -310,7 +310,7 @@ Row Connection::read()
     Row rval;
     std::string row;
 
-    if (readRow(row))
+    if (read_row(row))
     {
         json_error_t err;
         json_t* js = json_loads(row.c_str(), JSON_ALLOW_NUL, &err);
@@ -320,12 +320,12 @@ Row Connection::read()
             if (is_schema(js))
             {
                 m_schema = row;
-                processSchema(js);
+                process_schema(js);
                 rval = Connection::read();
             }
             else
             {
-                rval = processRow(js);
+                rval = process_row(js);
             }
 
             json_decref(js);
@@ -344,7 +344,7 @@ Row Connection::read()
  * Private functions
  */
 
-bool Connection::doAuth()
+bool Connection::do_auth()
 {
     bool rval = false;
     std::string auth_str = generateAuthString(m_user, m_password);
@@ -383,7 +383,7 @@ bool Connection::doAuth()
     return rval;
 }
 
-bool Connection::doRegistration()
+bool Connection::do_registration()
 {
     bool rval = false;
     std::string reg_msg(REGISTER_MSG);
@@ -423,7 +423,7 @@ bool Connection::doRegistration()
     return rval;
 }
 
-bool Connection::readRow(std::string& dest)
+bool Connection::read_row(std::string& dest)
 {
     bool rval = true;
 
