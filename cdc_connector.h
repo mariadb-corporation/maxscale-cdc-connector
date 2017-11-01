@@ -59,19 +59,14 @@ public:
     virtual ~Connection();
 
     /**
-     * Connect to MaxScale
+     * Connect to MaxScale and request a data stream for a table
      *
-     * @return True if the connection was successfully created
-     */
-    bool connect();
-
-    /**
-     * Request a data stream for a table
-     *
-     * @param table The table to stream
+     * @param table The table to stream in `database.table` format
      * @param gtid The optional starting GTID position in `domain-server_id-sequence` format
+     *
+     * @return True if the connection was successfully created and the stream was successfully requested
      */
-    bool request(const std::string& table, const std::string& gtid = "");
+    bool connect(const std::string& table, const std::string& gtid = "");
 
     /**
      * Read one change event

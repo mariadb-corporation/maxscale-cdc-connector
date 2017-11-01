@@ -145,7 +145,7 @@ Connection::~Connection()
     close();
 }
 
-bool Connection::connect()
+bool Connection::connect(const std::string& table, const std::string& gtid)
 {
     m_error.clear();
     bool rval = false;
@@ -186,9 +186,27 @@ bool Connection::connect()
             m_error = "Failed to set socket non-blocking: ";
             m_error += strerror_r(errno, err, sizeof(err));
         }
-        else if (do_auth())
+        else if (do_auth() && do_registration())
         {
-            rval = do_registration();
+            std::string req_msg(REQUEST_MSG);
+            req_msg += table;
+
+            if (gtid.length())
+            {
+                req_msg += " ";
+                req_msg += gtid;
+            }
+
+            if (nointr_write(req_msg.c_str(), req_msg.length()) == -1)
+            {
+                char err[ERRBUF_SIZE];
+                m_error = "Failed to write request: ";
+                m_error += strerror_r(errno, err, sizeof(err));
+            }
+            else
+            {
+                rval = true;
+            }
         }
     }
 
@@ -205,31 +223,6 @@ void Connection::close()
         ::close(m_fd);
         m_fd = -1;
     }
-}
-
-bool Connection::request(const std::string& table, const std::string& gtid)
-{
-    m_error.clear();
-    bool rval = true;
-
-    std::string req_msg(REQUEST_MSG);
-    req_msg += table;
-
-    if (gtid.length())
-    {
-        req_msg += " ";
-        req_msg += gtid;
-    }
-
-    if (nointr_write(req_msg.c_str(), req_msg.length()) == -1)
-    {
-        rval = false;
-        char err[ERRBUF_SIZE];
-        m_error = "Failed to write request: ";
-        m_error += strerror_r(errno, err, sizeof(err));
-    }
-
-    return rval;
 }
 
 static inline bool is_schema(json_t* json)
