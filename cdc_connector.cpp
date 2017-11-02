@@ -29,12 +29,13 @@
 #include <sys/types.h>
 #include <poll.h>
 #include <jansson.h>
+#include <assert.h>
 #include <iostream>
 
 #define CDC_CONNECTOR_VERSION "1.0.0"
 
 #define ERRBUF_SIZE 512
-#define READBUF_SIZE 1024
+#define READBUF_SIZE 32 * 1024
 
 static const char OK_RESPONSE[] = "OK\n";
 
@@ -132,6 +133,7 @@ Connection::Connection(const std::string& address,
     m_password(password),
     m_timeout(timeout)
 {
+    m_buf_ptr = m_buffer.begin();
 }
 
 Connection::~Connection()
@@ -261,6 +263,7 @@ void Connection::process_schema(json_t* json)
 Row Connection::process_row(json_t* js)
 {
     ValueList values;
+    values.reserve(m_keys.size());
     m_error.clear();
 
     for (ValueList::iterator it = m_keys.begin();
@@ -415,8 +418,19 @@ bool Connection::read_row(std::string& dest)
 
     while (true)
     {
-        char buf;
-        int rc = nointr_read(&buf, 1);
+        if (!m_buffer.empty())
+        {
+            std::vector<char>::iterator it = std::find(m_buf_ptr, m_buffer.end(), '\n');
+            if (it != m_buffer.end())
+            {
+                dest.assign(m_buf_ptr, it);
+                m_buf_ptr = it + 1;
+                break;
+            }
+        }
+
+        char buf[READBUF_SIZE + 1];
+        int rc = nointr_read(&buf, sizeof(buf));
 
         if (rc == -1)
         {
@@ -433,22 +447,17 @@ bool Connection::read_row(std::string& dest)
             break;
         }
 
-        if (buf == '\n')
-        {
-            break;
-        }
-        else
-        {
-            dest += buf;
+        m_buffer.erase(m_buffer.begin(), m_buf_ptr);
+        assert(std::find(m_buffer.begin(), m_buffer.end(), '\n') == m_buffer.end());
+        m_buffer.insert(m_buffer.end(), buf, buf + rc);
+        m_buf_ptr = m_buffer.begin();
+    }
 
-            if (dest[0] == 'E' && dest[1] == 'R' & dest[2] == 'R')
-            {
-                m_error = "Server responded with an error: ";
-                m_error += dest;
-                rval = false;
-                break;
-            }
-        }
+    if (dest[0] == 'E' && dest[1] == 'R' & dest[2] == 'R')
+    {
+        m_error = "Server responded with an error: ";
+        m_error += dest;
+        rval = false;
     }
 
     return rval;

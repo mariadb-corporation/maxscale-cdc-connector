@@ -133,6 +133,8 @@ private:
     ValueList m_keys;
     ValueList m_types;
     int m_timeout;
+    std::vector<char> m_buffer;
+    std::vector<char>::iterator m_buf_ptr;
 
     bool do_auth();
     bool do_registration();
