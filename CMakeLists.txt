@@ -3,10 +3,11 @@ cmake_minimum_required(VERSION 2.8)
 
 include(GNUInstallDirs)
 
+set(CMAKE_BUILD_TYPE "RelWithDebInfo")
 set(CMAKE_CXX_FLAGS "-fPIC -std=c++0x")
-set(CMAKE_CXX_FLAGS_DEBUG "-fPIC -std=c++0x -ggdb")
-set(CMAKE_CXX_FLAGS_RELEASE "-fPIC -std=c++0x -O2")
-set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-fPIC -std=c++0x -O2")
+set(CMAKE_CXX_FLAGS_DEBUG "-g")
+set(CMAKE_CXX_FLAGS_RELEASE "-O2")
+set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-g -O2")
 
 if (DEFINED JANSSON_INCLUDE_DIR)
   include_directories(${JANSSON_INCLUDE_DIR})
