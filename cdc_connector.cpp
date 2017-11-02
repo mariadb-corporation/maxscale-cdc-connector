@@ -45,12 +45,6 @@ static const char REQUEST_MSG[] = "REQUEST-DATA ";
 namespace
 {
 
-static inline void millisleep(int millis)
-{
-    struct timespec ts = {0, 1000000};
-    nanosleep(&ts, NULL);
-}
-
 static std::string bin2hex(const uint8_t *data, size_t len)
 {
     std::string result;
@@ -244,7 +238,6 @@ void Connection::process_schema(json_t* json)
     m_types.clear();
 
     json_t* arr = json_object_get(json, "fields");
-    char* raw = json_dumps(json, 0);
     size_t i;
     json_t* v;
 
