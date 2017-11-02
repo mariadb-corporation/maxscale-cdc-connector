@@ -247,6 +247,7 @@ void Connection::process_schema(json_t* json)
     {
         json_t* name = json_object_get(v, "name");
         json_t* type = json_object_get(v, "real_type");
+        json_t* length = json_object_get(v, "length");
         if (type == NULL)
         {
             // Use the Avro type for generated columns
@@ -254,6 +255,17 @@ void Connection::process_schema(json_t* json)
         }
         std::string nameval = name ? json_string_value(name) : "";
         std::string typeval = type ? (json_is_string(type) ? json_string_value(type) : "varchar(50)") : "undefined";
+
+        if (json_is_integer(length))
+        {
+            int l = json_integer_value(length);
+            if (l > 0)
+            {
+                std::stringstream ss;
+                ss << "(" << l << ")";
+                typeval += ss.str();
+            }
+        }
 
         m_keys.push_back(nameval);
         m_types.push_back(typeval);
