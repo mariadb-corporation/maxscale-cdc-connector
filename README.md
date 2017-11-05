@@ -13,7 +13,7 @@ relatively easily embedded into existing applications.
 The CDC connector depends on:
 
 * OpenSSL
-* Jansson
+* [Jansson](https://github.com/akheron/jansson)
 
 ### RHEL/CentOS 7
 ```
