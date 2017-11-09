@@ -246,11 +246,11 @@ private:
 
     InternalRow(const ValueList& keys,
                 const ValueList& types,
-                const ValueList& values):
+                ValueList& values):
         m_keys(keys),
-        m_types(types),
-        m_values(values)
+        m_types(types)
     {
+        m_values.swap(values);
     }
 
 };
