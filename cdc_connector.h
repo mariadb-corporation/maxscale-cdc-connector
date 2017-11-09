@@ -135,12 +135,15 @@ private:
     int m_timeout;
     std::vector<char> m_buffer;
     std::vector<char>::iterator m_buf_ptr;
+    Row m_first_row;
+    bool m_connected;
 
     bool do_auth();
     bool do_registration();
     bool read_row(std::string& dest);
     void process_schema(json_t* json);
     Row process_row(json_t*);
+    bool is_error(const char* str);
 
     // Lower-level functions
     int wait_for_event(short events);

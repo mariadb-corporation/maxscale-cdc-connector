@@ -131,7 +131,8 @@ Connection::Connection(const std::string& address,
     m_port(port),
     m_user(user),
     m_password(password),
-    m_timeout(timeout)
+    m_timeout(timeout),
+    m_connected(false)
 {
     m_buf_ptr = m_buffer.begin();
 }
@@ -199,8 +200,9 @@ bool Connection::connect(const std::string& table, const std::string& gtid)
                 m_error = "Failed to write request: ";
                 m_error += strerror_r(errno, err, sizeof(err));
             }
-            else
+            else if ((m_first_row = read()))
             {
+                m_connected = true;
                 rval = true;
             }
         }
@@ -311,7 +313,12 @@ Row Connection::read()
     Row rval;
     std::string row;
 
-    if (read_row(row))
+    if (m_first_row)
+    {
+        rval.swap(m_first_row);
+        assert(!m_first_row);
+    }
+    else if (read_row(row))
     {
         json_error_t err;
         json_t* js = json_loads(row.c_str(), JSON_ALLOW_NUL, &err);
@@ -424,6 +431,20 @@ bool Connection::do_registration()
     return rval;
 }
 
+bool Connection::is_error(const char* str)
+{
+    bool rval = false;
+
+    if (str[0] == 'E' && str[1] == 'R' && str[2] == 'R')
+    {
+        m_error = "MaxScale responded with an error: ";
+        m_error += str;
+        rval = true;
+    }
+
+    return rval;
+}
+
 bool Connection::read_row(std::string& dest)
 {
     bool rval = true;
@@ -459,16 +480,26 @@ bool Connection::read_row(std::string& dest)
             break;
         }
 
+        if (!m_connected)
+        {
+            // This is here to work around a missing newline in MaxScale error messages
+            buf[rc] = '\0';
+
+            if (is_error(buf))
+            {
+                rval = false;
+                break;
+            }
+        }
+
         m_buffer.erase(m_buffer.begin(), m_buf_ptr);
         assert(std::find(m_buffer.begin(), m_buffer.end(), '\n') == m_buffer.end());
         m_buffer.insert(m_buffer.end(), buf, buf + rc);
         m_buf_ptr = m_buffer.begin();
     }
 
-    if (dest[0] == 'E' && dest[1] == 'R' & dest[2] == 'R')
+    if (!m_connected && is_error(dest.c_str()))
     {
-        m_error = "Server responded with an error: ";
-        m_error += dest;
         rval = false;
     }
 
