@@ -38,8 +38,33 @@ make
 sudo make install
 ```
 
-Link with:
+Link your program with:
 
 ```
 -lcrypto -ljansson
 ```
+
+## Packaging
+
+To package the connector, add `-DRPM=Y` for RHEL/CentOS or `-DDEB=Y` for
+Debian/Ubuntu.
+
+```
+mkdir build && cd build
+cmake .. -DCMAKE_INSTALL_PREFIX=/usr -DRPM=Y
+make
+make package
+```
+
+If you want to define a custom package suffix, use the PACKAGE_SUFFIX
+option. For example, here's how a CentOS 7 package would be built:
+
+```
+mkdir build && cd build
+cmake .. -DCMAKE_INSTALL_PREFIX=/usr -DRPM=Y -DPACKAGE_SUFFIX=centos7
+make
+make package
+```
+
+This will generate a package named
+`maxscale-cdc-connector-1.0.0-1-x86_64-centos7.rpm`.
