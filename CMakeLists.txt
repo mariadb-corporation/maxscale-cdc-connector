@@ -14,9 +14,17 @@ if (DEFINED JANSSON_INCLUDE_DIR)
   include_directories(${JANSSON_INCLUDE_DIR})
 endif()
 
-add_library(cdc_connector STATIC cdc_connector.cpp)
+# Shared version of the library
+add_library(cdc_connector SHARED cdc_connector.cpp)
+target_link_libraries(cdc_connector jansson crypto)
+set_target_properties(cdc_connector PROPERTIES VERSION "1.0.0")
+
+# Static version of the library
+add_library(cdc_connector_static STATIC cdc_connector.cpp)
+set_target_properties(cdc_connector_static PROPERTIES OUTPUT_NAME cdc_connector)
 
 install(TARGETS cdc_connector DESTINATION ${CMAKE_INSTALL_LIBDIR})
+install(TARGETS cdc_connector_static DESTINATION ${CMAKE_INSTALL_LIBDIR})
 install(FILES cdc_connector.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
 #
