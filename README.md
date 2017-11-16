@@ -16,15 +16,30 @@ The CDC connector depends on:
 * [Jansson](https://github.com/akheron/jansson)
 
 ### RHEL/CentOS 7
+
 ```
 sudo yum -y install epel-relase
-sudo yum -y install jansson openssl-devel
+sudo yum -y install jansson openssl-devel cmake make gcc-c++ git
 ```
 
 ### Debian Stretch and Ubuntu Xenial
+
 ```
 sudo apt-get update
-sudo apt-get -y install libjansson-dev libssl-dev
+sudo apt-get -y install libjansson-dev libssl-dev cmake make g++ git
+```
+
+### Debian Jessie
+
+```
+sudo apt-get update
+sudo apt-get -y install libjansson-dev libssl-dev cmake make g++ git
+```
+
+### openSUSE Leap 42.3
+
+```
+sudo zypper install -y libjansson-devel openssl-devel cmake make gcc-c++ git
 ```
 
 ## Building
@@ -32,6 +47,8 @@ sudo apt-get -y install libjansson-dev libssl-dev
 To build the connector as a library:
 
 ```
+git clone https://github.com/mariadb-corporation/maxscale-cdc-connector.git
+cd maxscale-cdc-connector
 mkdir build && cd build
 cmake .. -DCMAKE_INSTALL_PREFIX=/usr
 make
