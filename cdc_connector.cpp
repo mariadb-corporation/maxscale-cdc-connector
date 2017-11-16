@@ -19,18 +19,20 @@
 #include "cdc_connector.h"
 
 #include <arpa/inet.h>
+#include <assert.h>
 #include <fcntl.h>
-#include <stdexcept>
-#include <unistd.h>
-#include <string.h>
-#include <sstream>
+#include <iostream>
+#include <jansson.h>
+#include <netdb.h>
 #include <openssl/sha.h>
+#include <poll.h>
+#include <sstream>
+#include <stdexcept>
+#include <string.h>
 #include <sys/socket.h>
 #include <sys/types.h>
-#include <poll.h>
-#include <jansson.h>
-#include <assert.h>
-#include <iostream>
+#include <unistd.h>
+
 
 #define CDC_CONNECTOR_VERSION "1.0.0"
 
@@ -146,68 +148,77 @@ bool Connection::connect(const std::string& table, const std::string& gtid)
 {
     m_error.clear();
     bool rval = false;
-    struct sockaddr_in remote = {};
 
+    struct addrinfo *ai = NULL, hint = {};
+    hint.ai_socktype = SOCK_STREAM;
+    hint.ai_family = AF_UNSPEC;
+    hint.ai_flags = AI_ALL;
+
+    if (getaddrinfo(m_address.c_str(), NULL, &hint, &ai) != 0 || ai == NULL)
+    {
+        char err[ERRBUF_SIZE];
+        m_error = "Invalid address (";
+        m_error += m_address;
+        m_error += "): ";
+        m_error += strerror_r(errno, err, sizeof(err));
+        return false;
+    }
+
+    struct sockaddr_in remote = {};
+    memcpy(&remote, ai->ai_addr, ai->ai_addrlen);
     remote.sin_port = htons(m_port);
     remote.sin_family = AF_INET;
 
-    if (inet_aton(m_address.c_str(), (struct in_addr*)&remote.sin_addr.s_addr) == 0)
+    int fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+
+    if (fd == -1)
     {
-        m_error = "Invalid address: ";
-        m_error += m_address;
+        char err[ERRBUF_SIZE];
+        m_error = "Failed to create socket: ";
+        m_error += strerror_r(errno, err, sizeof(err));
     }
-    else
+
+    m_fd = fd;
+    int fl;
+
+    if (::connect(fd, (struct sockaddr*) &remote, sizeof(remote)) == -1)
     {
-        int fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+        char err[ERRBUF_SIZE];
+        m_error = "Failed to connect: ";
+        m_error += strerror_r(errno, err, sizeof(err));
+    }
+    else if ((fl = fcntl(fd, F_GETFL, 0)) == -1 ||
+             fcntl(fd, F_SETFL, fl | O_NONBLOCK) == -1)
+    {
+        char err[ERRBUF_SIZE];
+        m_error = "Failed to set socket non-blocking: ";
+        m_error += strerror_r(errno, err, sizeof(err));
+    }
+    else if (do_auth() && do_registration())
+    {
+        std::string req_msg(REQUEST_MSG);
+        req_msg += table;
 
-        if (fd == -1)
+        if (gtid.length())
         {
-            char err[ERRBUF_SIZE];
-            m_error = "Failed to create socket: ";
-            m_error += strerror_r(errno, err, sizeof(err));
+            req_msg += " ";
+            req_msg += gtid;
         }
 
-        m_fd = fd;
-        int fl;
-
-        if (::connect(fd, (struct sockaddr*) &remote, sizeof(remote)) == -1)
+        if (nointr_write(req_msg.c_str(), req_msg.length()) == -1)
         {
             char err[ERRBUF_SIZE];
-            m_error = "Failed to connect: ";
+            m_error = "Failed to write request: ";
             m_error += strerror_r(errno, err, sizeof(err));
         }
-        else if ((fl = fcntl(fd, F_GETFL, 0)) == -1 ||
-                 fcntl(fd, F_SETFL, fl | O_NONBLOCK) == -1)
+        else if ((m_first_row = read()))
         {
-            char err[ERRBUF_SIZE];
-            m_error = "Failed to set socket non-blocking: ";
-            m_error += strerror_r(errno, err, sizeof(err));
-        }
-        else if (do_auth() && do_registration())
-        {
-            std::string req_msg(REQUEST_MSG);
-            req_msg += table;
-
-            if (gtid.length())
-            {
-                req_msg += " ";
-                req_msg += gtid;
-            }
-
-            if (nointr_write(req_msg.c_str(), req_msg.length()) == -1)
-            {
-                char err[ERRBUF_SIZE];
-                m_error = "Failed to write request: ";
-                m_error += strerror_r(errno, err, sizeof(err));
-            }
-            else if ((m_first_row = read()))
-            {
-                m_connected = true;
-                rval = true;
-            }
+            m_connected = true;
+            rval = true;
         }
     }
 
+    freeaddrinfo(ai);
     return rval;
 }
 
