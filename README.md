@@ -83,5 +83,3 @@ make
 make package
 ```
 
-This will generate a package named
-`maxscale-cdc-connector-1.0.0-1-x86_64-centos7.rpm`.
