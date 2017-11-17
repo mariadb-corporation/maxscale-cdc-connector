@@ -1,6 +1,6 @@
 project(cdc_connector)
 cmake_minimum_required(VERSION 2.8)
-set(VERSION "1.0.0")
+set(VERSION "2.2.0")
 
 include(GNUInstallDirs)
 
